@@ -1,36 +1,59 @@
 {
-    "app": {
-      "title": "RefuGuardian AI",
-      "subtitle": "مساعدك الصحي"
-    },
+  "common": {
+    "language": "اللغة",
+    "submit": "إرسال",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "reset": "إعادة تعيين",
+    "cancel": "إلغاء"
+  },
+  "header": {
+    "title": "المساعد الصحي",
+    "subtitle": "رفيقك الصحي الافتراضي"
+  },
+  "symptoms": {
+    "title": "فاحص الأعراض",
+    "describe": "اوصف أعراضك",
+    "describePlaceholder": "يرجى وصف كيف تشعر...",
+    "commonSymptoms": "الأعراض الشائعة",
+    "duration": "منذ متى وأنت تعاني من هذه الأعراض؟",
+    "durationPlaceholder": "مثال: يومين، أسبوع",
+    "voiceInput": "استخدام الإدخال الصوتي",
+    "startRecording": "بدء التسجيل",
+    "stopRecording": "إيقاف التسجيل",
     "symptoms": {
-      "title": "كيف تشعر؟",
-      "placeholder": "صف أعراضك...",
-      "common": {
-        "fever": "حمى",
-        "cough": "سعال",
-        "headache": "صداع",
-        "fatigue": "تعب",
-        "nausea": "غثيان",
-        "bodyAche": "ألم في الجسم",
-        "breathingDifficulty": "صعوبة في التنفس",
-        "chestPain": "ألم في الصدر"
-      }
-    },
-    "buttons": {
-      "submit": "احصل على النصيحة",
-      "speak": "تحدث",
-      "clear": "مسح"
-    },
-    "messages": {
-      "loading": "تحليل الأعراض...",
-      "error": "حدث خطأ. حاول مرة أخرى.",
-      "noInput": "يرجى وصف أعراضك أولاً."
-    },
-    "severity": {
-      "high": "اطلب العناية الطبية الفورية",
-      "medium": "راقب الأعراض واستشر طبيبًا إذا ساءت",
-      "low": "استرح واشرب الكثير من الماء. راقب الأعراض."
+      "fever": "حمى",
+      "cough": "سعال",
+      "headache": "صداع",
+      "fatigue": "إرهاق",
+      "nausea": "غثيان",
+      "bodyAches": "آلام في الجسم",
+      "difficultyBreathing": "صعوبة في التنفس",
+      "soreThroat": "التهاب الحلق",
+      "diarrhea": "إسهال",
+      "vomiting": "قيء"
     }
+  },
+  "chat": {
+    "userMessage": "أنت",
+    "assistantMessage": "المساعد الصحي",
+    "newConversation": "بدء محادثة جديدة",
+    "typeMessage": "اكتب رسالتك..."
+  },
+  "triage": {
+    "advice": "نصيحة صحية",
+    "severity": {
+      "low": "أولوية منخفضة",
+      "medium": "أولوية متوسطة",
+      "high": "أولوية عالية",
+      "emergency": "طارئ"
+    },
+    "disclaimer": "هذا ليس بديلاً عن المشورة الطبية المهنية. يرجى استشارة مقدم الرعاية الصحية للتشخيص والعلاج المناسب."
+  },
+  "errors": {
+    "networkError": "غير قادر على الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.",
+    "invalidInput": "يرجى تقديم معلومات أعراض صحيحة.",
+    "voiceNotSupported": "الإدخال الصوتي غير مدعوم في متصفحك.",
+    "microphoneError": "غير قادر على الوصول إلى الميكروفون. يرجى التحقق من الأذونات."
   }
-  
+}

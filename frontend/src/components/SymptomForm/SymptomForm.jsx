@@ -1,236 +1,220 @@
 import React, { useState } from 'react';
 import {
+  Box,
   Card,
   CardContent,
   TextField,
   Button,
   Typography,
-  Box,
   Chip,
-  Grid,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Alert
+  FormLabel,
+  Alert,
+  Divider
 } from '@mui/material';
+import { Send, Refresh } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import VoiceInput from './VoiceInput';
-import triageService from '../../services/triageService';
+import { COMMON_SYMPTOMS } from '../../utils/constants';
+import { sanitizeText } from '../../utils/helpers';
+import './SymptomForm.css';
 
-const SymptomForm = ({ onTriageResult }) => {
+const SymptomForm = ({ onSubmit, loading = false, error = '' }) => {
   const { t, i18n } = useTranslation();
-  const [symptoms, setSymptoms] = useState('');
-  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-  const [duration, setDuration] = useState('unknown');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  
+  const [formData, setFormData] = useState({
+    description: '',
+    symptoms: [],
+    duration: ''
+  });
+  const [validationErrors, setValidationErrors] = useState({});
 
-  const commonSymptoms = [
-    'fever', 'cough', 'headache', 'fatigue', 'nausea', 
-    'bodyAche', 'breathingDifficulty', 'chestPain'
-  ];
+  const handleInputChange = (field) => (event) => {
+    const value = sanitizeText(event.target.value);
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
 
   const handleSymptomToggle = (symptom) => {
-    setSelectedSymptoms(prev => 
-      prev.includes(symptom) 
-        ? prev.filter(s => s !== symptom)
-        : [...prev, symptom]
-    );
+    setFormData(prev => ({
+      ...prev,
+      symptoms: prev.symptoms.includes(symptom)
+        ? prev.symptoms.filter(s => s !== symptom)
+        : [...prev.symptoms, symptom]
+    }));
   };
 
   const handleVoiceTranscript = (transcript) => {
-    setSymptoms(prev => prev ? `${prev} ${transcript}` : transcript);
+    setFormData(prev => ({
+      ...prev,
+      description: prev.description 
+        ? `${prev.description} ${transcript}`
+        : transcript
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const errors = {};
     
-    if (!symptoms.trim() && selectedSymptoms.length === 0) {
-      setError(t('messages.noInput'));
+    if (!formData.description.trim() && formData.symptoms.length === 0) {
+      errors.general = t('errors.invalidInput');
+    }
+    
+    if (!formData.duration.trim()) {
+      errors.duration = t('symptoms.duration') + ' ' + t('common.required', 'is required');
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
+    const submissionData = {
+      ...formData,
+      language: i18n.language,
+      timestamp: new Date().toISOString()
+    };
 
-    try {
-      // Prepare symptoms array
-      let symptomsArray = [];
-      if (symptoms.trim()) {
-        symptomsArray.push(symptoms.trim());
-      }
-      symptomsArray = [...symptomsArray, ...selectedSymptoms];
+    onSubmit(submissionData);
+  };
 
-      const payload = {
-        symptoms: symptomsArray,
-        duration: duration,
-        language: i18n.language,
-        timestamp: new Date().toISOString()
-      };
-
-      console.log('Sending payload:', payload);
-      
-      const result = await triageService.submitSymptoms(payload);
-      console.log('Received result:', result);
-      
-      if (result.success) {
-        onTriageResult(result);
-        setSuccess('Analysis completed successfully!');
-        // Clear form
-        setSymptoms('');
-        setSelectedSymptoms([]);
-        setDuration('unknown');
-      } else {
-        setError(result.message || 'Failed to analyze symptoms');
-      }
-    } catch (err) {
-      console.error('Submission error:', err);
-      setError(err.message || t('messages.error'));
-    } finally {
-      setLoading(false);
-    }
+  const handleReset = () => {
+    setFormData({
+      description: '',
+      symptoms: [],
+      duration: ''
+    });
+    setValidationErrors({});
   };
 
   return (
-    <Card 
-      sx={{ 
-        maxWidth: 700, 
-        margin: '0 auto', 
-        mb: 3,
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)'
-      }}
-    >
-      <CardContent sx={{ p: 4 }}>
-        <Typography 
-          variant="h4" 
-          component="h2" 
-          gutterBottom 
-          color="primary" 
-          textAlign="center"
-          sx={{ mb: 3 }}
-        >
+    <Card sx={{ maxWidth: 600, mx: 'auto' }}>
+      <CardContent>
+        <Typography variant="h5" component="h2" gutterBottom>
           {t('symptoms.title')}
         </Typography>
-
-        <form onSubmit={handleSubmit}>
-          <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              value={symptoms}
-              onChange={(e) => setSymptoms(e.target.value)}
-              placeholder={t('symptoms.placeholder')}
-              variant="outlined"
-              sx={{ 
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2
-                }
-              }}
-              dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
-            />
-            
-            <VoiceInput 
-              onTranscript={handleVoiceTranscript}
-              language={i18n.language}
-            />
-          </Box>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Common Symptoms:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {commonSymptoms.map((symptom) => (
-                <Chip
-                  key={symptom}
-                  label={t(`symptoms.common.${symptom}`)}
-                  onClick={() => handleSymptomToggle(symptom)}
-                  color={selectedSymptoms.includes(symptom) ? 'primary' : 'default'}
-                  variant={selectedSymptoms.includes(symptom) ? 'filled' : 'outlined'}
-                  sx={{ 
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      transform: 'translateY(-1px)'
-                    }
-                  }}
-                />
-              ))}
-            </Box>
-          </Box>
-
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Duration of Symptoms</InputLabel>
-            <Select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              sx={{ borderRadius: 2 }}
-            >
-              <MenuItem value="less-than-day">Less than a day</MenuItem>
-              <MenuItem value="1-3-days">1-3 days</MenuItem>
-              <MenuItem value="3-7-days">3-7 days</MenuItem>
-              <MenuItem value="more-than-week">More than a week</MenuItem>
-              <MenuItem value="unknown">Unknown</MenuItem>
-            </Select>
-          </FormControl>
-
+        
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          {/* Error Display */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {success}
+          
+          {validationErrors.general && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {validationErrors.general}
             </Alert>
           )}
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            size="large"
-            disabled={loading}
-            sx={{ 
-              mb: 2,
-              py: 1.5,
-              fontSize: '1.1rem'
-            }}
-          >
-            {loading ? (
-              <>
-                <CircularProgress size={24} sx={{ mr: 2 }} />
-                {t('messages.loading')}
-              </>
-            ) : (
-              t('buttons.submit')
-            )}
-          </Button>
+          {/* Symptom Description */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('symptoms.describe')}
+            </Typography>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              placeholder={t('symptoms.describePlaceholder')}
+              value={formData.description}
+              onChange={handleInputChange('description')}
+              error={!!validationErrors.description}
+              helperText={validationErrors.description}
+              sx={{ mb: 1 }}
+            />
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="caption" color="text.secondary">
+                {t('symptoms.voiceInput')}
+              </Typography>
+              <VoiceInput
+                onTranscript={handleVoiceTranscript}
+                language={i18n.language}
+                disabled={loading}
+              />
+            </Box>
+          </Box>
 
-          <Button
-            variant="outlined"
-            color="secondary"
-            fullWidth
-            onClick={() => {
-              setSymptoms('');
-              setSelectedSymptoms([]);
-              setDuration('unknown');
-              setError('');
-              setSuccess('');
-            }}
-            sx={{ py: 1.5 }}
-          >
-            {t('buttons.clear')}
-          </Button>
-        </form>
+          <Divider sx={{ my: 2 }} />
+
+          {/* Common Symptoms */}
+          <Box sx={{ mb: 3 }}>
+            <FormControl component="fieldset" fullWidth>
+              <FormLabel component="legend">
+                <Typography variant="h6" gutterBottom>
+                  {t('symptoms.commonSymptoms')}
+                </Typography>
+              </FormLabel>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {COMMON_SYMPTOMS.map((symptom) => (
+                  <Chip
+                    key={symptom}
+                    label={t(`symptoms.symptoms.${symptom}`, symptom)}
+                    onClick={() => handleSymptomToggle(symptom)}
+                    color={formData.symptoms.includes(symptom) ? 'primary' : 'default'}
+                    variant={formData.symptoms.includes(symptom) ? 'filled' : 'outlined'}
+                    clickable
+                  />
+                ))}
+              </Box>
+            </FormControl>
+          </Box>
+
+          {/* Duration */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label={t('symptoms.duration')}
+              placeholder={t('symptoms.durationPlaceholder')}
+              value={formData.duration}
+              onChange={handleInputChange('duration')}
+              error={!!validationErrors.duration}
+              helperText={validationErrors.duration}
+              required
+            />
+          </Box>
+
+          {/* Action Buttons */}
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              onClick={handleReset}
+              startIcon={<Refresh />}
+              disabled={loading}
+            >
+              {t('common.reset')}
+            </Button>
+            
+            <Button
+              type="submit"
+              variant="contained"
+              startIcon={<Send />}
+              disabled={loading}
+            >
+              {loading ? t('common.loading') : t('common.submit')}
+            </Button>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );

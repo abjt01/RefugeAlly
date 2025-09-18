@@ -1,36 +1,59 @@
 {
-    "app": {
-      "title": "RefuGuardian AI",
-      "subtitle": "د تاسو د روغتیا مرستندوی"
-    },
+  "common": {
+    "language": "زبان",
+    "submit": "ارسال",
+    "loading": "بارگذاری...",
+    "error": "خطا رخ داد",
+    "reset": "بازنشانی",
+    "cancel": "لغو"
+  },
+  "header": {
+    "title": "دستیار صحی",
+    "subtitle": "همراه مجازی صحی شما"
+  },
+  "symptoms": {
+    "title": "بررسی علایم",
+    "describe": "علایم خود را شرح دهید",
+    "describePlaceholder": "لطفاً توضیح دهید که چگونه احساس می‌کنید...",
+    "commonSymptoms": "علایم رایج",
+    "duration": "چه مدت است که این علایم را دارید؟",
+    "durationPlaceholder": "مثال: ۲ روز، ۱ هفته",
+    "voiceInput": "استفاده از ورودی صوتی",
+    "startRecording": "شروع ضبط",
+    "stopRecording": "توقف ضبط",
     "symptoms": {
-      "title": "څنګه احساس کوئ؟",
-      "placeholder": "خپل نښې بیان کړئ...",
-      "common": {
-        "fever": "تبه",
-        "cough": "ټوخی",
-        "headache": "د سر درد",
-        "fatigue": "ستړیا",
-        "nausea": "زړه بدوالی",
-        "bodyAche": "د بدن درد",
-        "breathingDifficulty": "د تنفس ستونزه",
-        "chestPain": "د سینې درد"
-      }
-    },
-    "buttons": {
-      "submit": "مشوره واخلئ",
-      "speak": "خبرې وکړئ",
-      "clear": "پاکول"
-    },
-    "messages": {
-      "loading": "ستاسو نښې تحلیل کوي...",
-      "error": "یو څه غلط شوي. بیا هڅه وکړئ.",
-      "noInput": "لطفاً لومړی خپل نښې بیان کړئ."
-    },
-    "severity": {
-      "high": "سمدلاسه د طبي پاملرنې غوښتنه وکړئ",
-      "medium": "نښې وګورئ او که خراب شي نو د ډاکټر سره مشوره وکړئ",
-      "low": "آرام شئ او ډیره اوبه وښئ. نښې وګورئ."
+      "fever": "تب",
+      "cough": "سرفه",
+      "headache": "سردرد",
+      "fatigue": "خستگی",
+      "nausea": "حالت تهوع",
+      "bodyAches": "درد بدن",
+      "difficultyBreathing": "مشکل تنفس",
+      "soreThroat": "درد گلو",
+      "diarrhea": "اسهال",
+      "vomiting": "استفراغ"
     }
+  },
+  "chat": {
+    "userMessage": "شما",
+    "assistantMessage": "دستیار صحی",
+    "newConversation": "شروع گفتگوی جدید",
+    "typeMessage": "پیام خود را تایپ کنید..."
+  },
+  "triage": {
+    "advice": "مشاوره صحی",
+    "severity": {
+      "low": "اولویت پایین",
+      "medium": "اولویت متوسط",
+      "high": "اولویت بالا",
+      "emergency": "اضطراری"
+    },
+    "disclaimer": "این جایگزین مشاوره پزشکی حرفه‌ای نیست. لطفاً برای تشخیص و درمان مناسب با ارائه‌دهنده مراقبت‌های بهداشتی مشورت کنید."
+  },
+  "errors": {
+    "networkError": "قادر به اتصال به سرور نیستیم. لطفاً اتصال اینترنت خود را بررسی کنید.",
+    "invalidInput": "لطفاً اطلاعات معتبر علایم ارائه دهید.",
+    "voiceNotSupported": "ورودی صوتی در مرورگر شما پشتیبانی نمی‌شود.",
+    "microphoneError": "قادر به دسترسی به میکروفون نیستیم. لطفاً مجوزها را بررسی کنید."
   }
-  
+}
