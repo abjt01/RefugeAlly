@@ -1,38 +1,33 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-
-import en from './locales/en.json';
-import ar from './locales/ar.json';
-import dari from './locales/dari.json';
 
 const resources = {
   en: {
-    translation: en
-  },
-  ar: {
-    translation: ar
-  },
-  dari: {
-    translation: dari
+    translation: {
+      app: {
+        title: "RefugeAlly",
+        subtitle: "AI Health Assistant"
+      },
+      symptoms: {
+        title: "How are you feeling today?",
+        placeholder: "Describe your symptoms..."
+      },
+      buttons: {
+        submit: "Get Health Advice",
+        clear: "Clear"
+      }
+    }
   }
 };
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng: 'en',
     fallbackLng: 'en',
-    debug: true,
-
     interpolation: {
-      escapeValue: false,
-    },
-
-    detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage'],
+      escapeValue: false
     }
   });
 
