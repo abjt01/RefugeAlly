@@ -1,4 +1,3 @@
-const config = require('../config/config');
 const logger = require('../utils/logger');
 
 class TriageEngine {
@@ -13,22 +12,39 @@ class TriageEngine {
       'persistent fever', 'persistent cough', 'severe fatigue',
       'diarrhea', 'vomiting', 'moderate pain', 'infection signs'
     ];
+
+    logger.info('🔧 Triage Engine initialized');
   }
 
   analyzeSymptoms(symptoms, duration = 'unknown') {
-    const symptomsText = Array.isArray(symptoms) 
-      ? symptoms.join(' ').toLowerCase()
-      : symptoms.toLowerCase();
+    try {
+      const symptomsText = Array.isArray(symptoms) 
+        ? symptoms.join(' ').toLowerCase()
+        : symptoms.toLowerCase();
 
-    const severity = this.determineSeverity(symptomsText, duration);
-    const riskFactors = this.identifyRiskFactors(symptomsText);
-    
-    return {
-      severity,
-      riskFactors,
-      recommendations: this.getRecommendations(severity, riskFactors),
-      confidence: this.calculateConfidence(symptomsText, severity)
-    };
+      logger.info('🔍 Analyzing symptoms:', symptomsText);
+
+      const severity = this.determineSeverity(symptomsText, duration);
+      const riskFactors = this.identifyRiskFactors(symptomsText);
+      
+      const result = {
+        severity,
+        riskFactors,
+        recommendations: this.getRecommendations(severity, riskFactors),
+        confidence: this.calculateConfidence(symptomsText, severity)
+      };
+
+      logger.info('🔍 Analysis result:', result);
+      return result;
+    } catch (error) {
+      logger.error('❌ Triage engine error:', error.message);
+      return {
+        severity: 'medium',
+        riskFactors: [],
+        recommendations: ['Consult healthcare provider'],
+        confidence: 0.3
+      };
+    }
   }
 
   determineSeverity(symptomsText, duration) {
@@ -37,20 +53,28 @@ class TriageEngine {
       symptomsText.includes(keyword)
     );
     
-    if (hasEmergency) return 'high';
+    if (hasEmergency) {
+      logger.info('🚨 High severity detected: emergency symptoms');
+      return 'high';
+    }
 
     // Check for urgent symptoms
     const hasUrgent = this.urgentKeywords.some(keyword => 
       symptomsText.includes(keyword)
     );
     
-    if (hasUrgent) return 'medium';
-
-    // Consider duration
-    if (duration === 'more-than-week' && symptomsText.includes('fever')) {
+    if (hasUrgent) {
+      logger.info('⚠️ Medium severity detected: urgent symptoms');
       return 'medium';
     }
 
+    // Consider duration
+    if (duration === 'more-than-week' && symptomsText.includes('fever')) {
+      logger.info('⚠️ Medium severity detected: prolonged fever');
+      return 'medium';
+    }
+
+    logger.info('💚 Low severity detected');
     return 'low';
   }
 
@@ -66,7 +90,7 @@ class TriageEngine {
     }
     
     if (symptomsText.includes('headache') && symptomsText.includes('fever')) {
-      riskFactors.push('possible_meningitis');
+      riskFactors.push('possible_infection');
     }
     
     return riskFactors;
@@ -93,7 +117,6 @@ class TriageEngine {
     // Add specific recommendations based on risk factors
     if (riskFactors.includes('dehydration_risk')) {
       recommendations.push('Increase fluid intake');
-      recommendations.push('Consider oral rehydration solution');
     }
     
     return recommendations;
@@ -102,15 +125,17 @@ class TriageEngine {
   calculateConfidence(symptomsText, severity) {
     let confidence = 0.5; // Base confidence
     
-    // Increase confidence for clear emergency symptoms
-    if (severity === 'high' && this.emergencyKeywords.some(k => symptomsText.includes(k))) {
+    // Increase confidence for clear symptoms
+    if (severity === 'high') {
       confidence = 0.9;
+    } else if (severity === 'medium') {
+      confidence = 0.7;
     }
     
-    // Adjust confidence based on symptom clarity
-    const symptomCount = symptomsText.split(/[,\s]+/).length;
-    if (symptomCount > 3) confidence += 0.1;
-    if (symptomCount < 2) confidence -= 0.1;
+    // Adjust based on symptom detail
+    const words = symptomsText.split(/\s+/).length;
+    if (words > 5) confidence += 0.1;
+    if (words < 3) confidence -= 0.1;
     
     return Math.max(0.3, Math.min(0.95, confidence));
   }

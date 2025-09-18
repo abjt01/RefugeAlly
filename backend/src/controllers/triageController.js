@@ -5,74 +5,68 @@ const logger = require('../utils/logger');
 const { validateTriageInput } = require('../utils/validators');
 
 class TriageController {
+  // Main triage method
   async submitTriage(req, res) {
     try {
-      logger.info('Received triage request:', JSON.stringify(req.body, null, 2));
+      logger.info('📥 Received triage request:', JSON.stringify(req.body, null, 2));
       
       // Validate input
       const { error, value } = validateTriageInput(req.body);
       if (error) {
-        logger.error('Validation error:', error.details);
+        logger.error('❌ Validation error:', error.details.map(d => d.message));
         return res.status(400).json({
           success: false,
           message: 'Invalid input data',
-          errors: error.details.map(d => d.message),
-          received: req.body
+          errors: error.details.map(d => d.message)
         });
       }
 
       const { symptoms, duration, language } = value;
-      logger.info('Validated data:', { symptoms, duration, language });
+      logger.info('✅ Validated data:', { symptoms, duration, language });
       
       // Get user context
-      const userContext = {
-        duration,
+      const userContext = { 
+        duration, 
+        timestamp: new Date(),
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        timestamp: new Date()
+        userAgent: req.get('User-Agent')
       };
 
       // Perform rule-based triage first
       const ruleBasedResult = triageEngine.analyzeSymptoms(symptoms, duration);
-      logger.info('Rule-based result:', ruleBasedResult);
+      logger.info('🔧 Rule-based result:', ruleBasedResult);
       
       // Get AI-enhanced advice
-      const aiResult = await geminiService.generateTriageAdvice(
-        symptoms, 
-        language, 
-        userContext
-      );
-      logger.info('AI result:', aiResult);
+      logger.info('🤖 Calling Gemini AI...');
+      const aiResult = await geminiService.generateTriageAdvice(symptoms, language, userContext);
+      logger.info('🤖 AI result:', aiResult);
 
       // Combine results
       const finalResult = {
         advice: aiResult.advice || this.getFallbackAdvice(ruleBasedResult.severity, language),
         severity: aiResult.severity || ruleBasedResult.severity,
         confidence: Math.max(aiResult.confidence || 0.5, ruleBasedResult.confidence || 0.5),
-        recommendations: aiResult.emergencyActions || ruleBasedResult.recommendations || [],
+        recommendations: ruleBasedResult.recommendations || [],
         followUp: aiResult.followUp || 'Monitor symptoms and consult healthcare provider if needed'
       };
 
-      // Log the interaction
+      // Save to database
       try {
         const symptomLog = new SymptomLog({
           symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
           duration,
           language,
           triageResult: finalResult,
-          ipAddress: userContext.ipAddress,
-          userAgent: userContext.userAgent
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
         });
-
         await symptomLog.save();
-        logger.info('Symptom log saved successfully');
+        logger.info('💾 Symptom log saved successfully');
       } catch (dbError) {
-        logger.error('Failed to save symptom log:', dbError.message);
-        // Continue without failing the request
+        logger.error('❌ Failed to save symptom log:', dbError.message);
       }
 
-      // Log for monitoring
-      logger.info(`Triage completed: ${finalResult.severity} severity for ${Array.isArray(symptoms) ? symptoms.length : 1} symptoms`);
+      logger.info(`✅ Triage completed: ${finalResult.severity} severity`);
 
       res.json({
         success: true,
@@ -82,19 +76,18 @@ class TriageController {
       });
 
     } catch (error) {
-      logger.error('Triage error:', error.message);
-      logger.error('Error stack:', error.stack);
+      logger.error('❌ Triage controller error:', error.message);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
-        advice: this.getEmergencyFallback(req.body.language || 'en'),
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        advice: this.getEmergencyFallback(req.body.language || 'en')
       });
     }
   }
 
+  // Helper method for fallback advice
   getFallbackAdvice(severity, language = 'en') {
-    const fallbackAdvice = {
+    const advice = {
       'en': {
         'high': 'Your symptoms require immediate medical attention. Please seek emergency care.',
         'medium': 'Monitor your symptoms closely. Consider consulting a healthcare provider.',
@@ -103,52 +96,39 @@ class TriageController {
       'ar': {
         'high': 'تتطلب أعراضك عناية طبية فورية. يرجى طلب الرعاية الطارئة.',
         'medium': 'راقب أعراضك عن كثب. فكر في استشارة مقدم الرعاية الصحية.',
-        'low': 'استرح، اشرب الكثير من الماء، وراقب أعراضك. اطلب الرعاية إذا تفاقمت.'
+        'low': 'استرح، اشرب الكثير من الماء، وراقب أعراضك.'
       },
       'dari': {
-        'high': 'ستاسو نښې سمدلاسه طبي پاملرنې ته اړتیا لري. د بیړني مرستې غوښتنه وکړئ.',
-        'medium': 'خپل نښې له نږدې څخه وګورئ. د روغتیا پاملرنې چمتو کونکي سره مشوره ورسره وکړئ.',
-        'low': 'آرام شئ، ډیرې اوبه وښه، او خپل نښې وګورئ. که خراب شي نو د پاملرنې غوښتنه وکړئ.'
+        'high': 'ستاسو نښې سمدلاسه طبي پاملرنې ته اړتیا لري.',
+        'medium': 'خپل نښې له نږدې څخه وګورئ.',
+        'low': 'آرام شئ، ډیرې اوبه وښه، او خپل نښې وګورئ.'
       }
     };
-
-    return fallbackAdvice[language]?.[severity] || fallbackAdvice['en'][severity];
+    return advice[language]?.[severity] || advice['en'][severity];
   }
 
+  // Emergency fallback method
   getEmergencyFallback(language = 'en') {
     const emergency = {
       'en': 'If you have a medical emergency, please seek immediate professional help.',
       'ar': 'إذا كانت لديك حالة طوارئ طبية، يرجى طلب المساعدة المهنية الفورية.',
       'dari': 'که تاسو د طبي بیړنۍ حالت لرئ، مهرباني وکړئ سمدلاسه د مسلکي مرستې غوښتنه وکړئ.'
     };
-
     return emergency[language] || emergency['en'];
   }
 
+  // Stats method (if you have it in routes)
   async getTriageStats(req, res) {
     try {
-      const stats = await SymptomLog.aggregate([
-        {
-          $group: {
-            _id: '$triageResult.severity',
-            count: { $sum: 1 },
-            avgConfidence: { $avg: '$triageResult.confidence' }
-          }
-        },
-        { $sort: { count: -1 } }
-      ]);
-
       const totalLogs = await SymptomLog.countDocuments();
       
       res.json({
         success: true,
         data: {
-          severityDistribution: stats,
           totalTriages: totalLogs,
           timestamp: new Date().toISOString()
         }
       });
-
     } catch (error) {
       logger.error('Stats error:', error.message);
       res.status(500).json({

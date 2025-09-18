@@ -1,31 +1,42 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
 require('dotenv').config();
-
 const app = require('./src/app');
 const { connectDatabase } = require('./src/config/database');
-const logger = require('./src/utils/logger');
+const geminiService = require('./src/services/geminiService');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
-// Connect to MongoDB
-connectDatabase();
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await connectDatabase();
+    
+    // Test Gemini connection
+    console.log('🧪 Testing Gemini API connection...');
+    const geminiWorking = await geminiService.testConnection();
+    
+    if (geminiWorking) {
+      console.log('✅ Gemini API is working correctly');
+    } else {
+      console.log('⚠️  Gemini API not working - will use fallback responses');
+    }
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🚀 RefugeAlly Server running on port ${PORT}`);
+      console.log(`📱 Frontend URL: http://localhost:3000`);
+      console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+      console.log(`🔑 Gemini API: ${geminiWorking ? 'Connected ✅' : 'Disconnected ⚠️'}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error.message);
+    process.exit(1);
+  }
+}
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 RefuGuardian AI Server running on port ${PORT}`);
-  logger.info(`📱 Frontend URL: http://localhost:3000`);
-  logger.info(`🔗 API Base URL: http://localhost:${PORT}/api`);
-});
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM received. Shutting down gracefully...');
-  mongoose.connection.close(() => {
-    logger.info('MongoDB connection closed.');
-    process.exit(0);
-  });
+  console.log('SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
 });
