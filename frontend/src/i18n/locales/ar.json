@@ -1,0 +1,36 @@
+{
+    "app": {
+      "title": "RefuGuardian AI",
+      "subtitle": "مساعدك الصحي"
+    },
+    "symptoms": {
+      "title": "كيف تشعر؟",
+      "placeholder": "صف أعراضك...",
+      "common": {
+        "fever": "حمى",
+        "cough": "سعال",
+        "headache": "صداع",
+        "fatigue": "تعب",
+        "nausea": "غثيان",
+        "bodyAche": "ألم في الجسم",
+        "breathingDifficulty": "صعوبة في التنفس",
+        "chestPain": "ألم في الصدر"
+      }
+    },
+    "buttons": {
+      "submit": "احصل على النصيحة",
+      "speak": "تحدث",
+      "clear": "مسح"
+    },
+    "messages": {
+      "loading": "تحليل الأعراض...",
+      "error": "حدث خطأ. حاول مرة أخرى.",
+      "noInput": "يرجى وصف أعراضك أولاً."
+    },
+    "severity": {
+      "high": "اطلب العناية الطبية الفورية",
+      "medium": "راقب الأعراض واستشر طبيبًا إذا ساءت",
+      "low": "استرح واشرب الكثير من الماء. راقب الأعراض."
+    }
+  }
+  
