@@ -4,18 +4,28 @@ const logger = require('../utils/logger');
 
 class GeminiService {
   constructor() {
-    this.genAI = new GoogleGenerativeAI(config.geminiApiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+    try {
+      this.genAI = new GoogleGenerativeAI(config.geminiApiKey);
+      this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+      logger.info('Gemini AI service initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize Gemini AI service:', error.message);
+    }
   }
 
   async generateTriageAdvice(symptoms, language = 'en', context = {}) {
     try {
+      if (!this.genAI || !this.model) {
+        throw new Error('Gemini service not properly initialized');
+      }
+
       const prompt = this.buildTriagePrompt(symptoms, language, context);
       
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
+      logger.info('Gemini API response received successfully');
       return this.parseTriageResponse(text, language);
     } catch (error) {
       logger.error('Gemini API error:', error.message);
@@ -31,7 +41,7 @@ class GeminiService {
     };
 
     return `
-You are a medical triage AI assistant specifically designed for refugee healthcare.
+You are RefugeAlly, a medical triage AI assistant specifically designed for refugee healthcare.
 
 CRITICAL INSTRUCTIONS:
 - Provide brief, clear, culturally-sensitive medical guidance
@@ -93,15 +103,15 @@ Context: User is in refugee setting with limited healthcare access. Prioritize s
   getFallbackResponse(symptoms, language) {
     const responses = {
       'en': {
-        advice: 'Based on your symptoms, please monitor your condition. Seek medical care if symptoms worsen or persist.',
+        advice: 'Based on your symptoms, please monitor your condition carefully. Seek medical care if symptoms worsen or persist.',
         severity: 'medium'
       },
       'ar': {
-        advice: 'بناءً على أعراضك، يرجى مراقبة حالتك. اطلب العناية الطبية إذا ساءت الأعراض أو استمرت.',
+        advice: 'بناءً على أعراضك، يرجى مراقبة حالتك بعناية. اطلب العناية الطبية إذا ساءت الأعراض أو استمرت.',
         severity: 'medium'
       },
       'dari': {
-        advice: 'د تاسو د نښو په بنسټ، مهرباني وکړئ خپله حالت وڅارئ. که نښې خرابې شي یا دوام ولري نو د طبي پاملرنې غوښتنه وکړئ.',
+        advice: 'د تاسو د نښو په بنسټ، مهرباني وکړئ خپله حالت په پاملرنې سره وڅارئ. که نښې خرابې شي یا دوام ولري نو د طبي پاملرنې غوښتنه وکړئ.',
         severity: 'medium'
       }
     };

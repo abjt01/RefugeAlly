@@ -1,12 +1,22 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import api from './api';
 
 const triageService = {
   submitSymptoms: async (symptomsData) => {
-    return axios.post(`${API_BASE_URL}/api/triage`, symptomsData)
-      .then(res => res.data)
-      .catch(err => { throw err; });
+    try {
+      const response = await api.post('/api/triage', symptomsData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getEmergencyContacts: async (location) => {
+    try {
+      const response = await api.get(`/api/emergency-contacts?location=${location}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

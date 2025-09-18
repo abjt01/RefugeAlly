@@ -1,33 +1,36 @@
 {
-    "app": { "title": "RefuGuardian AI", "subtitle": "Your Health Assistant" },
-    "symptoms": {
-      "title": "How are you feeling?",
-      "placeholder": "Describe your symptoms...",
-      "common": {
-        "fever": "Fever",
-        "cough": "Cough",
-        "headache": "Headache",
-        "fatigue": "Fatigue",
-        "nausea": "Nausea",
-        "bodyAche": "Body Ache",
-        "breathingDifficulty": "Difficulty Breathing",
-        "chestPain": "Chest Pain"
-      }
-    },
-    "buttons": {
-      "submit": "Get Advice",
-      "speak": "Speak",
-      "clear": "Clear"
-    },
-    "messages": {
-      "loading": "Analyzing your symptoms...",
-      "error": "Something went wrong. Please try again.",
-      "noInput": "Please describe your symptoms first."
-    },
-    "severity": {
-      "high": "Seek emergency medical attention",
-      "medium": "Monitor symptoms and consult a doctor if they worsen",
-      "low": "Rest and stay hydrated. Monitor symptoms."
+  "app": { 
+    "title": "RefugeAlly", 
+    "subtitle": "AI Health Assistant for Refugees" 
+  },
+  "symptoms": {
+    "title": "How are you feeling today?",
+    "placeholder": "Describe your symptoms in your own words...",
+    "common": {
+      "fever": "Fever",
+      "cough": "Cough",
+      "headache": "Headache",
+      "fatigue": "Fatigue",
+      "nausea": "Nausea",
+      "bodyAche": "Body Ache",
+      "breathingDifficulty": "Difficulty Breathing",
+      "chestPain": "Chest Pain"
     }
+  },
+  "buttons": {
+    "submit": "Get Medical Advice",
+    "speak": "Speak Your Symptoms",
+    "clear": "Clear All",
+    "emergency": "Emergency Help"
+  },
+  "messages": {
+    "loading": "Analyzing your symptoms...",
+    "error": "Connection error. Please try again.",
+    "noInput": "Please describe your symptoms first."
+  },
+  "severity": {
+    "high": "⚠️ Seek immediate medical attention",
+    "medium": "⚡ Monitor symptoms and consult a doctor if they worsen",
+    "low": "💚 Rest and stay hydrated. Monitor symptoms."
   }
-  
+}

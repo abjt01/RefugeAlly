@@ -2,8 +2,8 @@ const Joi = require('joi');
 
 const triageInputSchema = Joi.object({
   symptoms: Joi.alternatives().try(
-    Joi.string().min(3).max(500),
-    Joi.array().items(Joi.string().min(1).max(100)).min(1).max(10)
+    Joi.string().min(1).max(1000),
+    Joi.array().items(Joi.string().min(1).max(200)).min(1).max(20)
   ).required(),
   
   duration: Joi.string().valid(
@@ -12,17 +12,16 @@ const triageInputSchema = Joi.object({
   
   language: Joi.string().valid('en', 'ar', 'dari').default('en'),
   
-  location: Joi.object({
-    camp: Joi.string().max(100),
-    region: Joi.string().max(100),
-    country: Joi.string().max(100)
-  }).optional()
-});
+  timestamp: Joi.string().optional(),
+  
+  // Allow additional fields without failing
+}).unknown(true);
 
 const validateTriageInput = (data) => {
-  return triageInputSchema.validate(data, { allowUnknown: false });
+  return triageInputSchema.validate(data, { 
+    allowUnknown: true,
+    stripUnknown: false 
+  });
 };
 
-module.exports = {
-  validateTriageInput
-};
+module.exports = { validateTriageInput };

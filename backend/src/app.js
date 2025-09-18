@@ -15,10 +15,10 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Logging middleware
@@ -40,7 +40,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    service: 'RefuGuardian AI Backend',
+    service: 'RefugeAlly Backend',
     version: '1.0.0'
   });
 });
@@ -50,6 +50,7 @@ app.use('/api/triage', triageRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
+  logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
     message: 'Endpoint not found',
@@ -60,13 +61,17 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use((error, req, res, next) => {
   logger.error('Unhandled error:', error);
+  logger.error('Request body:', req.body);
   
   res.status(error.status || 500).json({
     success: false,
-    message: config.nodeEnv === 'production' 
+    message: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
       : error.message,
-    ...(config.nodeEnv !== 'production' && { stack: error.stack })
+    ...(process.env.NODE_ENV !== 'production' && { 
+      stack: error.stack,
+      body: req.body 
+    })
   });
 });
 

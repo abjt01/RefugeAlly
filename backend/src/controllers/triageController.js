@@ -7,17 +7,22 @@ const { validateTriageInput } = require('../utils/validators');
 class TriageController {
   async submitTriage(req, res) {
     try {
+      logger.info('Received triage request:', JSON.stringify(req.body, null, 2));
+      
       // Validate input
       const { error, value } = validateTriageInput(req.body);
       if (error) {
+        logger.error('Validation error:', error.details);
         return res.status(400).json({
           success: false,
-          message: 'Invalid input',
-          errors: error.details.map(d => d.message)
+          message: 'Invalid input data',
+          errors: error.details.map(d => d.message),
+          received: req.body
         });
       }
 
       const { symptoms, duration, language } = value;
+      logger.info('Validated data:', { symptoms, duration, language });
       
       // Get user context
       const userContext = {
@@ -29,6 +34,7 @@ class TriageController {
 
       // Perform rule-based triage first
       const ruleBasedResult = triageEngine.analyzeSymptoms(symptoms, duration);
+      logger.info('Rule-based result:', ruleBasedResult);
       
       // Get AI-enhanced advice
       const aiResult = await geminiService.generateTriageAdvice(
@@ -36,30 +42,37 @@ class TriageController {
         language, 
         userContext
       );
+      logger.info('AI result:', aiResult);
 
       // Combine results
       const finalResult = {
         advice: aiResult.advice || this.getFallbackAdvice(ruleBasedResult.severity, language),
         severity: aiResult.severity || ruleBasedResult.severity,
-        confidence: Math.max(aiResult.confidence || 0.5, ruleBasedResult.confidence),
-        recommendations: aiResult.emergencyActions || ruleBasedResult.recommendations,
+        confidence: Math.max(aiResult.confidence || 0.5, ruleBasedResult.confidence || 0.5),
+        recommendations: aiResult.emergencyActions || ruleBasedResult.recommendations || [],
         followUp: aiResult.followUp || 'Monitor symptoms and consult healthcare provider if needed'
       };
 
       // Log the interaction
-      const symptomLog = new SymptomLog({
-        symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
-        duration,
-        language,
-        triageResult: finalResult,
-        ipAddress: userContext.ipAddress,
-        userAgent: userContext.userAgent
-      });
+      try {
+        const symptomLog = new SymptomLog({
+          symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
+          duration,
+          language,
+          triageResult: finalResult,
+          ipAddress: userContext.ipAddress,
+          userAgent: userContext.userAgent
+        });
 
-      await symptomLog.save();
+        await symptomLog.save();
+        logger.info('Symptom log saved successfully');
+      } catch (dbError) {
+        logger.error('Failed to save symptom log:', dbError.message);
+        // Continue without failing the request
+      }
 
       // Log for monitoring
-      logger.info(`Triage completed: ${finalResult.severity} severity, ${symptoms.length} symptoms`);
+      logger.info(`Triage completed: ${finalResult.severity} severity for ${Array.isArray(symptoms) ? symptoms.length : 1} symptoms`);
 
       res.json({
         success: true,
@@ -70,10 +83,12 @@ class TriageController {
 
     } catch (error) {
       logger.error('Triage error:', error.message);
+      logger.error('Error stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
-        advice: this.getEmergencyFallback(req.body.language)
+        advice: this.getEmergencyFallback(req.body.language || 'en'),
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
