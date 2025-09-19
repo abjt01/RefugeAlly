@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head><title>Refugee Mental Health AI</title></head>
+<body>
+    <h1>Mental Health AI Chat</h1>
+    <input id="inputText" type="text" placeholder="Type your message" />
+    <button onclick="sendMessage()">Send</button>
+    <br/>
+    <p>Mood:</p>
+    <button onclick="logMood('😀')">😀</button>
+    <button onclick="logMood('😞')">😞</button>
+    <button onclick="logMood('😡')">😡</button>
+    <button onclick="logMood('😭')">😭</button>
+    <div id="responseDiv"></div>
+    <button onclick="startDictation()">🎤</button>
+
+    <script>
+    async function sendMessage() {
+        const text = document.getElementById("inputText").value;
+        const res = await fetch("/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text: text, language: "en"})
+        });
+        const data = await res.json();
+        document.getElementById("responseDiv").innerText = data.response;
+    }
+
+    async function logMood(emoji) {
+        const res = await fetch("/mood/log", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({emoji: emoji})
+        });
+        const data = await res.json();
+        alert(data.intervention);
+    }
+
+    function startDictation() {
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.onresult = e => {
+            document.getElementById("inputText").value = e.results[0][0].transcript;
+        };
+        recognition.start();
+    }
+    </script>
+</body>
+</html>
