@@ -1,4 +1,4 @@
-// src/App.jsx - FIXED VERSION WITH i18n
+// src/App.jsx - COMPLETE UPDATED VERSION WITH PERFECT LAYOUT
 import React, { useState } from 'react';
 import { 
   ThemeProvider, 
@@ -30,246 +30,425 @@ import {
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Favorite as MentalHealthIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 
-// Import your existing systems - KEEP THESE
+// Import your existing systems
 import theme from './styles/theme';
 import triageService from './services/triageService';
-import './i18n/i18n'; // Import your i18n configuration
+import './i18n/i18n';
 
-// Import new components
+// Import components
 import Header from './components/Layout/Header';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import LoomPage from './pages/LoomPage';
-import DoctorConsultDialog from './components/Dialogs/DoctorConsultDialog';
+import TriageResults from './components/Triage/TriageResults';
+import VoiceInput from './components/Triage/VoiceInput';
 
-// Enhanced HomePage Component
+// Enhanced HomePage Component with Perfect Layout
 const HomePage = ({ onSymptomSubmit, searchResults, onDoctorConsult }) => {
   const [symptoms, setSymptoms] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Keep your existing symptom list
   const commonSymptoms = [
-    { key: 'fever', label: '🤒 Fever', severity: 'high' },
-    { key: 'cough', label: '😷 Cough', severity: 'medium' },
-    { key: 'headache', label: '🧠 Headache', severity: 'medium' },
-    { key: 'fatigue', label: '😴 Fatigue', severity: 'low' },
-    { key: 'nausea', label: '🤢 Nausea', severity: 'medium' },
-    { key: 'bodyache', label: '💪 Body Ache', severity: 'medium' }
+    { key: 'fever', label: 'Fever', color: '#ef4444' },
+    { key: 'cough', label: 'Cough', color: '#f59e0b' },
+    { key: 'headache', label: 'Headache', color: '#8b5cf6' },
+    { key: 'fatigue', label: 'Fatigue', color: '#06b6d4' },
+    { key: 'nausea', label: 'Nausea', color: '#84cc16' },
+    { key: 'bodyAche', label: 'Body Ache', color: '#f97316' },
+    { key: 'breathingDifficulty', label: 'Difficulty Breathing', color: '#dc2626' },
+    { key: 'chestPain', label: 'Chest Pain', color: '#991b1b' }
   ];
 
+  const handleSymptomToggle = (symptom) => {
+    setSelectedSymptoms(prev => 
+      prev.includes(symptom.key)
+        ? prev.filter(s => s !== symptom.key)
+        : [...prev, symptom.key]
+    );
+  };
+
   const handleSymptomSubmit = async () => {
-    if (!symptoms.trim() && selectedSymptoms.length === 0) return;
+    if (!symptoms.trim() && selectedSymptoms.length === 0) {
+      setError('Please describe your symptoms');
+      return;
+    }
     
     setLoading(true);
+    setError('');
+    
     try {
       const symptomsArray = symptoms.trim() ? [symptoms.trim(), ...selectedSymptoms] : selectedSymptoms;
       
       const response = await triageService.submitSymptoms({
         symptoms: symptomsArray,
         language: 'en',
-        duration: 'unknown'
+        duration: 'unknown',
+        location: 'refugee_camp_alpha'
       });
 
       onSymptomSubmit(response);
     } catch (error) {
-      console.error('Error:', error);
+      setError('Failed to analyze symptoms. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const getSeverityConfig = (severity) => {
-    switch (severity) {
-      case 'high':
-        return { color: 'error', icon: <ErrorIcon />, bgColor: '#fee2e2' };
-      case 'medium':
-        return { color: 'warning', icon: <WarningIcon />, bgColor: '#fef3c7' };
-      default:
-        return { color: 'success', icon: <CheckIcon />, bgColor: '#dcfce7' };
-    }
+  const handleClearAll = () => {
+    setSymptoms('');
+    setSelectedSymptoms([]);
+    setError('');
+    onSymptomSubmit(null); // Clear results too
   };
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Container maxWidth="lg">
-        {/* Hero Section */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h2" sx={{ fontWeight: 800, mb: 2, color: 'primary.main' }}>
-            AI-Powered Health Assistant for Refugees
+    <Box>
+      {/* Main Content Area */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Typography variant="h2" gutterBottom className="gradient-text" textAlign="center">
+            How are you feeling today?
           </Typography>
-          <Typography variant="h6" sx={{ color: 'text.secondary', mb: 4 }}>
-            Get instant health advice, connect with doctors, and access mental health support
+          <Typography variant="body1" textAlign="center" sx={{ mb: 6, color: 'text.secondary' }}>
+            Describe your symptoms and get personalized health guidance
           </Typography>
-        </Box>
+        </motion.div>
 
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={8}>
-            {/* Symptom Input Card */}
-            <Card sx={{ mb: 4, borderRadius: 4, boxShadow: 3 }}>
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ textAlign: 'center', mb: 4 }}>
-                  <AIIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-                    Tell me about your symptoms
+        {/* SIDE BY SIDE LAYOUT - SYMPTOM INPUT & AI ASSESSMENT */}
+        <Grid container spacing={4} sx={{ mb: 6 }}>
+          {/* LEFT COLUMN - Symptom Input */}
+          <Grid item xs={12} lg={6}>
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="glass-card" sx={{ height: '100%', minHeight: 600 }}>
+                <CardContent sx={{ p: 4, height: '100%' }}>
+                  <Typography variant="h4" sx={{ mb: 4, fontWeight: 600, textAlign: 'center', color: 'primary.main' }}>
+                    📝 Symptom Input
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Our AI will analyze your symptoms and connect you with the right care
-                  </Typography>
-                </Box>
 
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  placeholder="Describe how you're feeling..."
-                  variant="outlined"
-                  sx={{ mb: 3 }}
-                />
+                  {/* Text Input */}
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={6}
+                    value={symptoms}
+                    onChange={(e) => setSymptoms(e.target.value)}
+                    placeholder="Tell me about your symptoms in detail..."
+                    variant="outlined"
+                    sx={{
+                      mb: 3,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(148, 163, 184, 0.05)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(148, 163, 184, 0.08)'
+                        }
+                      }
+                    }}
+                  />
 
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  Common symptoms:
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 4 }}>
-                  {commonSymptoms.map((symptom) => (
-                    <Chip
-                      key={symptom.key}
-                      label={symptom.label}
-                      onClick={() => {
-                        setSelectedSymptoms(prev => 
-                          prev.includes(symptom.key)
-                            ? prev.filter(s => s !== symptom.key)
-                            : [...prev, symptom.key]
-                        );
-                      }}
-                      variant={selectedSymptoms.includes(symptom.key) ? 'filled' : 'outlined'}
-                      color={symptom.severity === 'high' ? 'error' : symptom.severity === 'medium' ? 'warning' : 'success'}
-                      sx={{ cursor: 'pointer' }}
-                    />
-                  ))}
-                </Box>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleSymptomSubmit}
-                  disabled={loading || (!symptoms.trim() && selectedSymptoms.length === 0)}
-                  startIcon={loading ? <CircularProgress size={20} /> : <SendIcon />}
-                  sx={{
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                  }}
-                >
-                  {loading ? 'Analyzing...' : 'Get AI Consultation'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Search Results Display - NEW: Shows results on same page */}
-            {searchResults && (
-              <Card sx={{ mb: 4, borderRadius: 4, boxShadow: 3 }}>
-                <CardContent sx={{ p: 4 }}>
-                  <Box sx={{ textAlign: 'center', mb: 3 }}>
-                    <AIIcon sx={{ fontSize: 50, color: 'success.main', mb: 2 }} />
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-                      AI Assessment Complete
-                    </Typography>
+                  {/* Voice Input */}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                    <VoiceInput onTranscript={(text) => setSymptoms(prev => prev + ' ' + text)} />
                   </Box>
 
-                  {(() => {
-                    const config = getSeverityConfig(searchResults.data.severity);
-                    return (
-                      <>
-                        <Alert 
-                          severity={config.color} 
-                          sx={{ mb: 3, fontSize: '1.1rem' }}
-                        >
-                          <Typography variant="h6" gutterBottom>
-                            Priority: {searchResults.data.severity?.toUpperCase() || 'MEDIUM'}
-                          </Typography>
-                          {searchResults.data.advice}
-                        </Alert>
-
-                        {searchResults.data.recommendations && (
-                          <Box sx={{ mb: 3 }}>
-                            <Typography variant="h6" gutterBottom>Recommendations:</Typography>
-                            <List>
-                              {searchResults.data.recommendations.map((rec, index) => (
-                                <ListItem key={index}>
-                                  <ListItemIcon>
-                                    <CheckIcon color="primary" fontSize="small" />
-                                  </ListItemIcon>
-                                  <ListItemText primary={rec} />
-                                </ListItem>
-                              ))}
-                            </List>
-                          </Box>
-                        )}
-
-                        {/* Doctor Consultation Button - NEW FEATURE */}
-                        <Button
-                          fullWidth
-                          variant="contained"
-                          size="large"
-                          onClick={onDoctorConsult}
-                          startIcon={<VideoIcon />}
+                  {/* Common Symptoms */}
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                    Quick Select Common Symptoms
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 4 }}>
+                    {commonSymptoms.map((symptom) => (
+                      <motion.div
+                        key={symptom.key}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Chip
+                          label={symptom.label}
+                          onClick={() => handleSymptomToggle(symptom)}
+                          variant={selectedSymptoms.includes(symptom.key) ? 'filled' : 'outlined'}
                           sx={{
-                            py: 1.5,
-                            fontSize: '1.1rem',
+                            borderRadius: 2,
                             fontWeight: 600,
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                            backgroundColor: selectedSymptoms.includes(symptom.key) 
+                              ? symptom.color 
+                              : 'transparent',
+                            color: selectedSymptoms.includes(symptom.key) ? 'white' : symptom.color,
+                            borderColor: symptom.color,
+                            '&:hover': {
+                              backgroundColor: selectedSymptoms.includes(symptom.key) 
+                                ? symptom.color 
+                                : `${symptom.color}20`
+                            }
                           }}
-                        >
-                          Consult with Doctor
-                        </Button>
-                      </>
-                    );
-                  })()}
+                        />
+                      </motion.div>
+                    ))}
+                  </Box>
+
+                  {/* Error Alert */}
+                  {error && (
+                    <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                      {error}
+                    </Alert>
+                  )}
+
+                  {/* Action Buttons */}
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 'auto' }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ClearIcon />}
+                      onClick={handleClearAll}
+                      sx={{ borderRadius: 3, px: 3, py: 1.5 }}
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      variant="contained"
+                      endIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
+                      onClick={handleSymptomSubmit}
+                      disabled={loading}
+                      sx={{
+                        borderRadius: 3,
+                        px: 4,
+                        py: 1.5,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        fontWeight: 600,
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      {loading ? 'Analyzing...' : 'Get AI Health Assessment'}
+                    </Button>
+                  </Box>
                 </CardContent>
               </Card>
-            )}
+            </motion.div>
           </Grid>
 
-          {/* Side Panel */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  🌍 RefugeAlly Services
-                </Typography>
-                <List dense>
-                  <ListItem>
-                    <ListItemIcon><AIIcon color="primary" /></ListItemIcon>
-                    <ListItemText primary="AI Health Triage" secondary="Instant symptom analysis" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon><VideoIcon color="success" /></ListItemIcon>
-                    <ListItemText primary="Video Consultations" secondary="Connect with doctors" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon><OutbreakIcon color="warning" /></ListItemIcon>
-                    <ListItemText primary="Outbreak Prevention" secondary="Community monitoring" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon><SecurityIcon color="info" /></ListItemIcon>
-                    <ListItemText primary="Mental Health Support" secondary="Trauma-informed care" />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
+          {/* RIGHT COLUMN - AI Assessment Results */}
+          <Grid item xs={12} lg={6}>
+            {searchResults ? (
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <TriageResults result={searchResults} />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Card className="glass-card" sx={{ height: '100%', minHeight: 600 }}>
+                  <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <AIIcon sx={{ fontSize: 100, color: 'primary.main', mb: 3, opacity: 0.7 }} />
+                      <Typography variant="h4" sx={{ fontWeight: 600, mb: 3, color: 'primary.main' }}>
+                        🤖 AI Assessment Results
+                      </Typography>
+                      <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
+                        Ready to analyze your symptoms
+                      </Typography>
+                      
+                      <Box sx={{ textAlign: 'left', maxWidth: 350, mx: 'auto' }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+                          What you'll get:
+                        </Typography>
+                        <Box sx={{ space: 2 }}>
+                          <Typography variant="body1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ fontSize: '1.5rem' }}>🤖</span> 
+                            <span><strong>Gemini AI Analysis</strong> - Instant symptom assessment</span>
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ fontSize: '1.5rem' }}>🦠</span> 
+                            <span><strong>ML Outbreak Detection</strong> - Community risk analysis</span>
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ fontSize: '1.5rem' }}>👩‍⚕️</span> 
+                            <span><strong>Doctor Recommendations</strong> - Connect with professionals</span>
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <span style={{ fontSize: '1.5rem' }}>🧠</span> 
+                            <span><strong>Mental Health Support</strong> - Trauma-informed care</span>
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </Grid>
         </Grid>
       </Container>
+
+      {/* REFUGEALLY SERVICES SECTION - FULL WIDTH AT BOTTOM */}
+      <Box sx={{ 
+        bgcolor: 'rgba(148, 163, 184, 0.05)', 
+        py: 6,
+        borderTop: '1px solid rgba(148, 163, 184, 0.1)'
+      }}>
+        <Container maxWidth="xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Typography variant="h3" sx={{ 
+              fontWeight: 700, 
+              mb: 2, 
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              🌍 RefugeAlly Services
+            </Typography>
+            <Typography variant="h6" sx={{ 
+              textAlign: 'center', 
+              color: 'text.secondary', 
+              mb: 6 
+            }}>
+              Comprehensive healthcare solutions designed specifically for refugees
+            </Typography>
+            
+            <Grid container spacing={4}>
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card sx={{ 
+                    height: '100%', 
+                    textAlign: 'center', 
+                    p: 3,
+                    borderRadius: 4,
+                    boxShadow: 3,
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: 6
+                    }
+                  }}>
+                    <AIIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: 'primary.main' }}>
+                      AI Health Triage
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      Instant symptom analysis powered by Google Gemini AI with cultural sensitivity
+                    </Typography>
+                  </Card>
+                </motion.div>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card sx={{ 
+                    height: '100%', 
+                    textAlign: 'center', 
+                    p: 3,
+                    borderRadius: 4,
+                    boxShadow: 3,
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: 'success.main',
+                      boxShadow: 6
+                    }
+                  }}>
+                    <VideoIcon sx={{ fontSize: 60, color: 'success.main', mb: 2 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: 'success.main' }}>
+                      Video Consultations
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      Connect with verified doctors via Practo platform with NGO-subsidized consultations
+                    </Typography>
+                  </Card>
+                </motion.div>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card sx={{ 
+                    height: '100%', 
+                    textAlign: 'center', 
+                    p: 3,
+                    borderRadius: 4,
+                    boxShadow: 3,
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: 'warning.main',
+                      boxShadow: 6
+                    }
+                  }}>
+                    <OutbreakIcon sx={{ fontSize: 60, color: 'warning.main', mb: 2 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: 'warning.main' }}>
+                      Outbreak Prevention
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      ML-powered community health monitoring for early outbreak detection and prevention
+                    </Typography>
+                  </Card>
+                </motion.div>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={3}>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card sx={{ 
+                    height: '100%', 
+                    textAlign: 'center', 
+                    p: 3,
+                    borderRadius: 4,
+                    boxShadow: 3,
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: 'secondary.main',
+                      boxShadow: 6
+                    }
+                  }}>
+                    <MentalHealthIcon sx={{ fontSize: 60, color: 'secondary.main', mb: 2 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: 'secondary.main' }}>
+                      Mental Health Support
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      Trauma-informed AI mental health support via Loom with crisis detection capabilities
+                    </Typography>
+                  </Card>
+                </motion.div>
+              </Grid>
+            </Grid>
+          </motion.div>
+        </Container>
+      </Box>
     </Box>
   );
 };
@@ -280,7 +459,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
-  const [doctorDialogOpen, setDoctorDialogOpen] = useState(false);
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -305,10 +483,6 @@ function App() {
     setSearchResults(results);
   };
 
-  const handleDoctorConsult = () => {
-    setDoctorDialogOpen(true);
-  };
-
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -316,7 +490,6 @@ function App() {
           <HomePage 
             onSymptomSubmit={handleSymptomSubmit}
             searchResults={searchResults}
-            onDoctorConsult={handleDoctorConsult}
           />
         );
       case 'login':
@@ -334,7 +507,6 @@ function App() {
           <HomePage 
             onSymptomSubmit={handleSymptomSubmit}
             searchResults={searchResults}
-            onDoctorConsult={handleDoctorConsult}
           />
         );
     }
@@ -343,7 +515,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
         {/* Header with navigation */}
         <Header 
           currentPage={currentPage}
@@ -354,13 +526,9 @@ function App() {
         />
         
         {/* Page Content */}
-        {renderPage()}
-        
-        {/* Doctor Consultation Dialog */}
-        <DoctorConsultDialog 
-          open={doctorDialogOpen}
-          onClose={() => setDoctorDialogOpen(false)}
-        />
+        <Box sx={{ flex: 1 }}>
+          {renderPage()}
+        </Box>
       </Box>
     </ThemeProvider>
   );
