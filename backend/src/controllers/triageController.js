@@ -3,6 +3,11 @@ const geminiService = require('../services/geminiService');
 const triageEngine = require('../services/triageEngine');
 const logger = require('../utils/logger');
 const { validateTriageInput } = require('../utils/validators');
+const axios = require('axios');
+
+// Service URLs
+const ML_SERVICE_URL = 'http://localhost:5000';
+const LOOM_SERVICE_URL = 'http://localhost:6000';
 
 class TriageController {
   async submitTriage(req, res) {
@@ -11,7 +16,6 @@ class TriageController {
       
       const { error, value } = validateTriageInput(req.body);
       if (error) {
-        logger.error('❌ Validation error:', error.details.map(d => d.message));
         return res.status(400).json({
           success: false,
           message: 'Invalid input data',
@@ -20,24 +24,14 @@ class TriageController {
       }
 
       const { symptoms, duration, language, location } = value;
-      logger.info('✅ Validated data:', { symptoms, duration, language });
       
-      const userContext = { 
-        duration, 
-        location: location || 'unknown',
-        timestamp: new Date(),
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent')
-      };
-
       // Step 1: Rule-based triage
       const ruleBasedResult = triageEngine.analyzeSymptoms(symptoms, duration);
       logger.info('🔧 Rule-based result:', ruleBasedResult);
       
       // Step 2: AI consultation with Gemini
-      logger.info('🤖 Calling Gemini AI for consultation...');
-      const aiResult = await geminiService.generateTriageAdvice(symptoms, language, userContext);
-      logger.info('🤖 AI consultation result:', aiResult);
+      const aiResult = await geminiService.generateTriageAdvice(symptoms, language, { duration, location });
+      logger.info('🤖 AI result:', aiResult);
 
       // Step 3: Combine results
       const finalResult = {
@@ -45,11 +39,38 @@ class TriageController {
         severity: aiResult.severity || ruleBasedResult.severity,
         confidence: Math.max(aiResult.confidence || 0.5, ruleBasedResult.confidence || 0.5),
         recommendations: aiResult.recommendations || ruleBasedResult.recommendations || [],
-        followUp: aiResult.followUp || 'Monitor symptoms and consult healthcare provider if needed',
-        aiConsultation: aiResult.advice ? true : false
+        followUp: aiResult.followUp || 'Monitor symptoms and consult healthcare provider if needed'
       };
 
-      // Step 4: Mock doctor data (since services aren't created yet)
+      // Step 4: Save to database
+      const symptomLog = new SymptomLog({
+        symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
+        duration,
+        language,
+        triageResult: finalResult,
+        location: { country: location || 'unknown' },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      
+      await symptomLog.save();
+      logger.info('💾 Patient record saved');
+
+      // Step 5: ML Outbreak Prediction
+      logger.info('🧬 Calling ML outbreak prediction...');
+      const mlResult = await this.callMLService({
+        patient_id: symptomLog._id.toString(),
+        symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
+        location: location || 'unknown',
+        severity: finalResult.severity,
+        duration,
+        population_density: 1500 // Mock value
+      });
+
+      // Step 6: Check for mental health support needs
+      const mentalHealthSupport = await this.getMentalHealthResources();
+
+      // Step 7: Mock available doctors
       const availableDoctors = [
         {
           id: 'dr_001',
@@ -64,137 +85,172 @@ class TriageController {
           avatar: '👩‍⚕️'
         },
         {
-          id: 'dr_002', 
-          name: 'Dr. Michael Chen',
+          id: 'dr_002',
+          name: 'Dr. Michael Chen', 
           specialty: 'Internal Medicine',
           rating: 4.9,
           experience: '12 years',
           languages: ['English'],
           availability: 'Available in 15 mins',
           subsidized: false,
-          consultationFee: 'Free (NGO Sponsored)',
+          consultationFee: '$25',
           avatar: '👨‍⚕️'
         }
       ];
 
-      // Step 5: Save to database
-      try {
-        const symptomLog = new SymptomLog({
-          symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
-          duration,
-          language,
-          location: userContext.location,
-          triageResult: finalResult,
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-          timestamp: new Date()
-        });
-        
-        await symptomLog.save();
-        logger.info('💾 Patient record saved successfully');
-        
-        // Mock outbreak analysis
-        const outbreakRisk = {
-          location: userContext.location,
-          riskLevel: 'Medium',
-          similarCases: Math.floor(Math.random() * 20) + 5,
-          recommendation: 'Monitor closely - increased cases of respiratory symptoms detected in the region'
-        };
-
-        // Final response with all data
-        const completeResponse = {
-          ...finalResult,
-          patientId: symptomLog._id,
-          availableDoctors: availableDoctors,
-          outbreakRisk: outbreakRisk
-        };
-
-        logger.info(`✅ Complete triage completed: ${finalResult.severity} severity`);
-
-        res.json({
-          success: true,
-          data: completeResponse,
-          userInput: { symptoms, duration, language, location: userContext.location },
-          timestamp: new Date().toISOString(),
-          flow: {
-            step1: 'AI Consultation Complete ✅',
-            step2: 'Doctors Available ✅',
-            step3: 'Outbreak Analysis Complete ✅'
-          }
-        });
-
-      } catch (dbError) {
-        logger.error('❌ Failed to save patient record:', dbError.message);
-        // Continue without failing the request
-        res.json({
-          success: true,
-          data: finalResult,
-          userInput: { symptoms, duration, language },
-          timestamp: new Date().toISOString(),
-          warning: 'Data not saved to database'
-        });
-      }
-
-    } catch (error) {
-      logger.error('❌ Triage controller error:', error.message);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        advice: getEmergencyFallback(req.body.language || 'en')
-      });
-    }
-  }
-
-  async getTriageStats(req, res) {
-    try {
-      const totalLogs = await SymptomLog.countDocuments();
-      
+      // Final comprehensive response
       res.json({
         success: true,
         data: {
-          totalTriages: totalLogs,
-          timestamp: new Date().toISOString()
+          // Triage Results
+          ...finalResult,
+          patientId: symptomLog._id,
+          
+          // Available Doctors
+          availableDoctors,
+          
+          // ML Outbreak Analysis
+          outbreakAnalysis: mlResult,
+          
+          // Mental Health Support
+          mentalHealthSupport: {
+            available: true,
+            chatEndpoint: `${LOOM_SERVICE_URL}/mental-health/chat`,
+            moodEndpoint: `${LOOM_SERVICE_URL}/mental-health/mood`,
+            resourcesEndpoint: `${LOOM_SERVICE_URL}/mental-health/resources`,
+            ...mentalHealthSupport
+          }
+        },
+        userInput: { symptoms, duration, language, location },
+        timestamp: new Date().toISOString(),
+        services: {
+          aiTriage: '✅ Complete',
+          mlOutbreakDetection: mlResult ? '✅ Complete' : '⚠️ Fallback',
+          doctorMatching: '✅ Available',
+          mentalHealthSupport: '✅ Ready'
         }
       });
+
     } catch (error) {
-      logger.error('Stats error:', error.message);
+      logger.error('❌ Triage error:', error.message);
       res.status(500).json({
         success: false,
-        message: 'Unable to fetch statistics'
+        message: 'Internal server error',
+        advice: 'Please consult a healthcare professional immediately if you have serious symptoms.'
+      });
+    }
+  }
+
+  async callMLService(patientData) {
+    try {
+      const response = await axios.post(`${ML_SERVICE_URL}/predict-outbreak`, patientData, {
+        timeout: 5000
+      });
+      
+      if (response.data.success) {
+        logger.info('✅ ML outbreak prediction completed');
+        return response.data.data;
+      }
+      
+      return this.getFallbackMLResult();
+    } catch (error) {
+      logger.error('❌ ML service error:', error.message);
+      return this.getFallbackMLResult();
+    }
+  }
+
+  async getMentalHealthResources() {
+    try {
+      const response = await axios.get(`${LOOM_SERVICE_URL}/mental-health/resources`, {
+        timeout: 3000
+      });
+      
+      if (response.data.success) {
+        return response.data.resources;
+      }
+      
+      return this.getFallbackMentalHealthResources();
+    } catch (error) {
+      logger.error('❌ Loom service error:', error.message);
+      return this.getFallbackMentalHealthResources();
+    }
+  }
+
+  getFallbackMLResult() {
+    return {
+      risk_level: 'Medium',
+      risk_probability: 0.6,
+      similar_cases: 12,
+      outbreak_predicted: false,
+      recommendation: '🔍 STANDARD MONITORING: Continue regular health screening.',
+      model_confidence: 0.6,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  getFallbackMentalHealthResources() {
+    return {
+      crisis_hotlines: [
+        { name: "Crisis Helpline", number: "988", available: "24/7" }
+      ],
+      coping_techniques: [
+        { name: "Deep Breathing", description: "Breathe slowly and deeply" }
+      ]
+    };
+  }
+
+  // New endpoint for mental health chat
+  async mentalHealthChat(req, res) {
+    try {
+      const { text, language = 'en', user_id = 'anonymous' } = req.body;
+      
+      const response = await axios.post(`${LOOM_SERVICE_URL}/mental-health/chat`, {
+        text,
+        language,
+        user_id
+      });
+      
+      res.json(response.data);
+    } catch (error) {
+      logger.error('Mental health chat error:', error.message);
+      res.status(500).json({
+        success: false,
+        response: "I'm here to support you. Please try again or contact a mental health professional if you need immediate help."
+      });
+    }
+  }
+
+  // New endpoint for mood logging
+  async logMood(req, res) {
+    try {
+      const { emoji, user_id = 'anonymous', notes = '' } = req.body;
+      
+      const response = await axios.post(`${LOOM_SERVICE_URL}/mental-health/mood`, {
+        emoji,
+        user_id,
+        notes
+      });
+      
+      res.json(response.data);
+    } catch (error) {
+      logger.error('Mood logging error:', error.message);
+      res.status(500).json({
+        success: false,
+        message: "Unable to log mood at this time."
       });
     }
   }
 }
 
-// Helper functions (outside the class to avoid 'this' issues)
 function getFallbackAdvice(severity, language = 'en') {
   const advice = {
     'en': {
-      'high': 'Your symptoms require immediate medical attention. Please seek emergency care or connect with an available doctor immediately.',
-      'medium': 'Monitor your symptoms closely and consider consulting with one of our available doctors within the next few hours.',
-      'low': 'Rest, stay hydrated, and monitor your symptoms. You can consult with a doctor if symptoms persist or worsen.'
-    },
-    'ar': {
-      'high': 'تتطلب أعراضك عناية طبية فورية. يرجى طلب الرعاية الطارئة أو الاتصال بطبيب متاح فورًا.',
-      'medium': 'راقب أعراضك عن كثب وفكر في استشارة أحد أطبائنا المتاحين خلال الساعات القليلة القادمة.',
-      'low': 'استرح واشرب الكثير من الماء وراقب أعراضك. يمكنك استشارة طبيب إذا استمرت الأعراض أو تفاقمت.'
-    },
-    'dari': {
-      'high': 'ستاسو نښې سمدلاسه طبي پاملرنې ته اړتیا لري. د بیړني مرستې غوښتنه وکړئ یا سمدلاسه د شتون لرونکي ډاکټر سره اړیکه ونیسئ.',
-      'medium': 'خپل نښې له نږدې څخه وګورئ او په راتلونکو څو ساعتونو کې زموږ د شتون لرونکي ډاکټرانو څخه د یو سره مشوره په پام کې ونیسئ.',
-      'low': 'آرام شئ، ډیرې اوبه وښه، او خپل نښې وګورئ. که نښې دوام ولري یا خرابې شي نو تاسو کولی شئ د ډاکټر سره مشوره وکړئ.'
+      'high': 'Your symptoms require immediate medical attention. Please seek emergency care.',
+      'medium': 'Monitor your symptoms closely and consider consulting a healthcare provider.',
+      'low': 'Rest, stay hydrated, and monitor your symptoms.'
     }
   };
   return advice[language]?.[severity] || advice['en'][severity];
-}
-
-function getEmergencyFallback(language = 'en') {
-  const emergency = {
-    'en': 'If you have a medical emergency, please seek immediate professional help or call local emergency services.',
-    'ar': 'إذا كانت لديك حالة طوارئ طبية، يرجى طلب المساعدة المهنية الفورية أو الاتصال بخدمات الطوارئ المحلية.',
-    'dari': 'که تاسو د طبي بیړنۍ حالت لرئ، مهرباني وکړئ سمدلاسه د مسلکي مرستې غوښتنه وکړئ یا د محلي بیړني خدماتو سره اړیکه ونیسئ.'
-  };
-  return emergency[language] || emergency['en'];
 }
 
 module.exports = new TriageController();

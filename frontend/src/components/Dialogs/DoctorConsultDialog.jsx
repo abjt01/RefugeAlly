@@ -42,7 +42,7 @@ const DoctorConsultDialog = ({ open, onClose }) => {
       languages: ['English'],
       availability: 'Available in 15 mins',
       subsidized: false,
-      consultationFee: '$25',
+      consultationFee: 'Free (NGO Sponsored)',
       image: '👨‍⚕️'
     }
   ];

@@ -56,7 +56,7 @@ const ContactPage = () => {
                   Emergency Hotline
                 </Typography>
                 <Typography variant="body1">
-                  +1 (555) 123-4567
+                  +91 XXXXX XXXXX
                 </Typography>
               </CardContent>
             </Card>
@@ -70,7 +70,7 @@ const ContactPage = () => {
                   Email Support
                 </Typography>
                 <Typography variant="body1">
-                  support@refugeally.org
+                  refugeally@support.org
                 </Typography>
               </CardContent>
             </Card>
@@ -84,7 +84,7 @@ const ContactPage = () => {
                   Headquarters
                 </Typography>
                 <Typography variant="body1">
-                  Geneva, Switzerland
+                  Bengaluru, India
                 </Typography>
               </CardContent>
             </Card>
