@@ -1,0 +1,59 @@
+{
+  "common": {
+    "language": "Language",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "error": "Error occurred",
+    "reset": "Reset",
+    "cancel": "Cancel"
+  },
+  "header": {
+    "title": "Health Assistant",
+    "subtitle": "Your Virtual Health Companion"
+  },
+  "symptoms": {
+    "title": "Symptom Checker",
+    "describe": "Describe your symptoms",
+    "describePlaceholder": "Please describe how you are feeling...",
+    "commonSymptoms": "Common Symptoms",
+    "duration": "How long have you had these symptoms?",
+    "durationPlaceholder": "e.g., 2 days, 1 week",
+    "voiceInput": "Use Voice Input",
+    "startRecording": "Start Recording",
+    "stopRecording": "Stop Recording",
+    "symptoms": {
+      "fever": "Fever",
+      "cough": "Cough",
+      "headache": "Headache",
+      "fatigue": "Fatigue",
+      "nausea": "Nausea",
+      "bodyAches": "Body Aches",
+      "difficultyBreathing": "Difficulty Breathing",
+      "soreThroat": "Sore Throat",
+      "diarrhea": "Diarrhea",
+      "vomiting": "Vomiting"
+    }
+  },
+  "chat": {
+    "userMessage": "You",
+    "assistantMessage": "Health Assistant",
+    "newConversation": "Start New Conversation",
+    "typeMessage": "Type your message..."
+  },
+  "triage": {
+    "advice": "Health Advice",
+    "severity": {
+      "low": "Low Priority",
+      "medium": "Medium Priority",
+      "high": "High Priority",
+      "emergency": "Emergency"
+    },
+    "disclaimer": "This is not a substitute for professional medical advice. Please consult a healthcare provider for proper diagnosis and treatment."
+  },
+  "errors": {
+    "networkError": "Unable to connect to server. Please check your internet connection.",
+    "invalidInput": "Please provide valid symptom information.",
+    "voiceNotSupported": "Voice input is not supported in your browser.",
+    "microphoneError": "Unable to access microphone. Please check permissions."
+  }
+}
